@@ -40,3 +40,15 @@ def Q_to_paulis(Q):
             coeffs = np.concatenate((coeffs, coeff), axis=None)
 
     return SparsePauliOp(pauli_terms, coeffs=coeffs), offset
+
+def all_quantum_states(n_qubits, budget = None, vec = False):
+    states = []
+    for i in range(2**n_qubits):
+        a = f"{bin(i)[2:]:0>{n_qubits}}"
+        n_ones = 0
+        vector = [0 for i in range(n_qubits)]
+        for i, j in enumerate(a):
+            if j == "1":
+                vector[i] = 1
+        states.append(vector)
+    return states
