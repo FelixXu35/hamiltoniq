@@ -8,13 +8,14 @@ import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from itertools import product
 from scipy.optimize import curve_fit
 from scipy import interpolate
 from pathlib import Path
 from scipy.optimize import minimize
 from qiskit import QuantumCircuit, Aer
 from qiskit.primitives import Sampler, Estimator, BackendSampler
-from qiskit.algorithms.minimum_eigensolvers import QAOA
+from qiskit.algorithms.minimum_eigensolvers import QAOA, MinimumEigensolverResult
 from qiskit.algorithms.optimizers import COBYLA
 from functools import partial
 
@@ -166,12 +167,26 @@ class Toniq:
             hist_x, np.append([0], cumulative_score), kind="linear"
         )
         return f
+    
+    def get_accuracy(data: List(MinimumEigensolverResult), dim: int, n_layers: int) -> List(float):
+        """
+        Calculate the accuracy (overlap between the result and the ground state) for all QAOA results.
+        """
+        ground_state_info = globals(f'ground_{dim}')
+        dec_ground_state = ground_state_info["dec_state"]
+        accuracy_list = []
+        for i in data:
+            try:
+                accuracy_list.append(i.eigenstate[dec_ground_state])
+            except:
+                accuracy_list.append(0)
+        return accuracy_list
 
-    def run(self, backend, n_layers_list: list):
-        for n_layer in n_layers_list:
-            results_list = self.run_QAOA(backend, dim_4)
-            for result in results_list:
-                pass
+    def run(self, backend, dim_list: List(int),  n_layers_list: List(int)):
+        for dim, n_layers in product(dim_list, n_layers_list):
+            results_list = self.get_results(backend, globals(f'dim_{dim}'), n_layers, n_reps=1000)
+        for result in results_list:
+            
 
     def show_ladder_diagram(self, dim: int, n_layers: int, backends=None):
         f"""
