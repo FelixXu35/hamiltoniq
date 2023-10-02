@@ -145,34 +145,24 @@ class Toniq:
         scoring_curve_sampling = np.append(np.zeros(1), cumulative_score)
         return scoring_curve_sampling
 
-    def build_scoring_function(
-        self, data: list | pd.Series, n_boxes: int = 100
-    ) -> Callable:
-        """
-        Calculate the scoring function according to the sampling result.
-        The default number of boxes is 200. We do recommand not to change it throught the benchmarking
+    def score(accuracy_data: List(float), dim, n_layers) -> float:
+        df = pd.read_csv("HamilToniQ/scoring_curves.csv")
+        score_y = df[f"dim_{dim}_layer_{n_layers}"]
+        score_x = df["score_x"]
+        f = interpolate.interp1d(score_x, score_y, kind="linear")
+        score = 0.0
+        n_points = np.shape(accuracy_data)[0]
+        for i in accuracy_data:
+            score += f(i) / n_points
+        return score
 
-        args:
-            data: the accuracy data collected from a simulator. We always use data with 10,000 elements.
-            n_boxed: number of boxes when building histogram.
-        return:
-            f: a function that can used to score an accuracy.
-        """
-        n_boxes = 200
-        hist_x = np.linspace(0, 1, n_boxes + 1)
-        hist_y, _ = np.histogram(data, bins=hist_x)
-        hist_y = np.divide(hist_y, np.shape(data)[0])
-        cumulative_score = np.cumsum(hist_y)
-        f = interpolate.interp1d(
-            hist_x, np.append([0], cumulative_score), kind="linear"
-        )
-        return f
-    
-    def get_accuracy(data: List(MinimumEigensolverResult), dim: int, n_layers: int) -> List(float):
+    def get_accuracy(
+        self, data: List(MinimumEigensolverResult), dim: int, n_layers: int
+    ) -> List(float):
         """
         Calculate the accuracy (overlap between the result and the ground state) for all QAOA results.
         """
-        ground_state_info = globals(f'ground_{dim}')
+        ground_state_info = globals(f"ground_{dim}")
         dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
         for i in data:
@@ -182,11 +172,17 @@ class Toniq:
                 accuracy_list.append(0)
         return accuracy_list
 
-    def run(self, backend, dim_list: List(int),  n_layers_list: List(int)):
-        for dim, n_layers in product(dim_list, n_layers_list):
-            results_list = self.get_results(backend, globals(f'dim_{dim}'), n_layers, n_reps=1000)
-        for result in results_list:
-            
+    def run(self, backend, dim: int, n_layers: int) -> float:
+        """
+        Score backend with a specific width/dimension and a number of layers.
+        args:
+            backend: the qiskit backend that is going to be scored.
+        """
+        results_list = self.get_results(
+            backend, globals(f"dim_{dim}"), n_layers, n_reps=1000
+        )
+        accuracy_list = self.get_accuracy(results_list, dim, n_layers)
+        return self.score(accuracy_list)
 
     def show_ladder_diagram(self, dim: int, n_layers: int, backends=None):
         f"""
