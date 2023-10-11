@@ -8,6 +8,7 @@ import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 from itertools import product
 from scipy.optimize import curve_fit
 from scipy import interpolate
@@ -183,11 +184,22 @@ class Toniq:
         )
         accuracy_list = self.get_accuracy(results_list, dim, n_layers)
         return self.score(accuracy_list) * 2
-    
-    def plot_heatmap(dim):
+
+    def plot_heatmap(self, data: pd.DataFrame):
         """
         Use a heatmap to compare across different backend with the same dimension.
         """
+        first_score = data.index[1]
+        data = data.transpose()
+        data_sorted = data.sort_values(by=first_score, ascending=False)
+        sns.heatmap(
+            data_sorted,
+            annot=True,
+            square=True,
+            cbar_kws={"location": "bottom"},
+            vmax=1,
+            vmin=0,
+        )
 
     def show_ladder_diagram(self, dim: int, n_layers: int, backends=None):
         f"""
