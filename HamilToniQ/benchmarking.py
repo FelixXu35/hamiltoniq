@@ -31,10 +31,10 @@ Hardware_Backend = Any
 class Toniq:
     def __init__(self) -> None:
         self.backend_list = []
-        self.n_reps = 1000
+        self.maxiter = 10000
         pass
 
-    def get_Q_matirx(self, dim: int, lower: float = 0.0, upper: float = 10.0):
+    def get_Q_matirx(self, dim: int, lower: float = -10.0, upper: float = 10.0):
         """
         Generate a random symmetric matrix with a give dimension.
         args:
@@ -109,7 +109,7 @@ class Toniq:
 
     def get_reference(
         self, Q: Matrix, n_layers: int, n_reps: int = 10000, n_points: int = 1000
-    ) -> list:
+    ) -> List[float]:
         """
         Calculate the scoring function.
         The scoring function is represented by uniform sampling.
@@ -145,7 +145,7 @@ class Toniq:
         scoring_curve_sampling = np.append(np.zeros(1), cumulative_score)
         return scoring_curve_sampling
 
-    def score(accuracy_data: List(float), dim, n_layers) -> float:
+    def score(accuracy_data: list, dim, n_layers) -> float:
         df = pd.read_csv("HamilToniQ/scoring_curves.csv")
         score_y = df[f"dim_{dim}_layer_{n_layers}"]
         score_x = df["score_x"]
@@ -157,8 +157,8 @@ class Toniq:
         return score
 
     def get_accuracy(
-        self, data: List(MinimumEigensolverResult), dim: int, n_layers: int
-    ) -> List(float):
+        self, data: List[MinimumEigensolverResult], dim: int, n_layers: int
+    ) -> List[float]:
         """
         Calculate the accuracy (overlap between the result and the ground state) for all QAOA results.
         """
@@ -182,7 +182,12 @@ class Toniq:
             backend, globals(f"dim_{dim}"), n_layers, n_reps=1000
         )
         accuracy_list = self.get_accuracy(results_list, dim, n_layers)
-        return self.score(accuracy_list)
+        return self.score(accuracy_list) * 2
+    
+    def plot_heatmap(dim):
+        """
+        Use a heatmap to compare across different backend with the same dimension.
+        """
 
     def show_ladder_diagram(self, dim: int, n_layers: int, backends=None):
         f"""
