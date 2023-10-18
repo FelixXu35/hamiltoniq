@@ -185,11 +185,13 @@ class Toniq:
         accuracy_list = self.get_accuracy(results_list, dim, n_layers)
         return self.score(accuracy_list) * 2
 
-    def plot_heatmap(self, data: pd.DataFrame):
+    def plot_heatmap(self, data: pd.DataFrame, sort_dim: int = 1):
         """
         Use a heatmap to compare across different backend with the same dimension.
         """
-        first_score = data.index[1]
+        if sort_dim not in range(1, 10):
+            raise ValueError('Invalid dimension')
+        first_score = data.index[sort_dim]
         data = data.transpose()
         data_sorted = data.sort_values(by=first_score, ascending=False)
         sns.heatmap(
