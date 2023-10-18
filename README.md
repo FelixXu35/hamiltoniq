@@ -1,6 +1,6 @@
 # HamilToniQ
 
-[TOC]
+
 
 A benchmarking toolkit designed for QAOA performance on real quantum hardware.
 

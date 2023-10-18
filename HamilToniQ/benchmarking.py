@@ -198,7 +198,7 @@ class Toniq:
             data_sorted,
             annot=True,
             square=True,
-            cbar_kws={"location": "bottom"},
+            cbar=False,
             vmax=1,
             vmin=0,
         )
