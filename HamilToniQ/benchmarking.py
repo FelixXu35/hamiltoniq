@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from multiprocessing import cpu_count, Pool
 from itertools import product
 from scipy.optimize import curve_fit
 from scipy import interpolate
@@ -16,6 +17,7 @@ from pathlib import Path
 from scipy.optimize import minimize
 from qiskit import QuantumCircuit, Aer
 from qiskit.primitives import Sampler, Estimator, BackendSampler
+from qiskit.providers import fake_provider
 from qiskit.algorithms.minimum_eigensolvers import QAOA, MinimumEigensolverResult
 from qiskit.algorithms.optimizers import COBYLA
 from functools import partial
@@ -83,7 +85,13 @@ class Toniq:
         return ground
 
     def get_results(
-        self, backend, Q: Matrix, n_layers: int, options=None, n_reps: int = 1
+        self,
+        backend,
+        Q: Matrix,
+        n_layers: int,
+        options = None,
+        n_reps: int = 1,
+        n_cores: int | None = None,
     ):
         """
         Run QAOA on a given backend.
@@ -96,6 +104,8 @@ class Toniq:
         return:
             a list of MinimumEigensolverResult
         """
+        if n_cores is None:
+            n_cores = cpu_count()
         sampler = BackendSampler(backend=backend, options=options)
         optimizer = COBYLA(maxiter=self.maxiter)
         self.param_list = []
@@ -103,10 +113,17 @@ class Toniq:
         qaoa = QAOA(
             sampler=sampler,
             optimizer=optimizer,
-            reps=self.n_layers,
+            reps=n_layers,
         )
-        op, _ = Q_to_paulis(self.Q)
-        return [qaoa.compute_minimum_eigenvalue(op) for _ in range(n_reps)]
+        op, _ = Q_to_paulis(Q)
+        # if isinstance(backend, fake_provider):
+        with Pool(8) as p:
+            results = p.map(
+                qaoa.compute_minimum_eigenvalue, [op for _ in range(n_reps)]
+            )
+        # else:
+        # results = [qaoa.compute_minimum_eigenvalue(op) for _ in range(n_reps)]
+        return results
 
     def get_reference(
         self, Q: Matrix, n_layers: int, n_reps: int = 10000, n_points: int = 1000
@@ -146,7 +163,7 @@ class Toniq:
         scoring_curve_sampling = np.append(np.zeros(1), cumulative_score)
         return scoring_curve_sampling
 
-    def score(accuracy_data: list, dim, n_layers) -> float:
+    def score(self, accuracy_data: list, dim, n_layers) -> float:
         df = pd.read_csv("HamilToniQ/scoring_curves.csv")
         score_y = df[f"dim_{dim}_layer_{n_layers}"]
         score_x = df["score_x"]
@@ -154,7 +171,7 @@ class Toniq:
         score = 0.0
         n_points = np.shape(accuracy_data)[0]
         for i in accuracy_data:
-            score += f(i) / n_points
+            score += f(i) * 2 / n_points
         return score
 
     def get_accuracy(
@@ -163,7 +180,7 @@ class Toniq:
         """
         Calculate the accuracy (overlap between the result and the ground state) for all QAOA results.
         """
-        ground_state_info = globals(f"ground_{dim}")
+        ground_state_info = globals()[f"ground_{dim}"]
         dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
         for i in data:
@@ -173,24 +190,26 @@ class Toniq:
                 accuracy_list.append(0)
         return accuracy_list
 
-    def run(self, backend, dim: int, n_layers: int) -> float:
+    def run(
+        self, backend, dim: int, n_layers: int, n_cores: int | None = None
+    ) -> float:
         """
         Score backend with a specific width/dimension and a number of layers.
         args:
             backend: the qiskit backend that is going to be scored.
         """
         results_list = self.get_results(
-            backend, globals(f"dim_{dim}"), n_layers, n_reps=1000
+            backend, globals()[f"dim_{dim}"], n_layers, n_reps=1000, n_cores=n_cores
         )
         accuracy_list = self.get_accuracy(results_list, dim, n_layers)
-        return self.score(accuracy_list) * 2
+        return self.score(accuracy_list, dim=dim, n_layers=n_layers)
 
     def plot_heatmap(self, data: pd.DataFrame, sort_dim: int = 1):
         """
         Use a heatmap to compare across different backend with the same dimension.
         """
         if sort_dim not in range(1, 10):
-            raise ValueError('Invalid dimension')
+            raise ValueError("Invalid dimension")
         first_score = data.index[sort_dim]
         data = data.transpose()
         data_sorted = data.sort_values(by=first_score, ascending=False)
