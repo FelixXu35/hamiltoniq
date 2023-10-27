@@ -85,7 +85,7 @@ A: Easy to use - use only one number to tell you the overall performance of a ba
 
 Therefore, for each backend with a certain number of qubits, our toolkit gives a score, which indicates <u>how much all kinds of noise influence the accuracy</u>. 
 
-Before we dive into the math, I would like to explain what is **overlap distribution**, which is frequently used below. This overlap refers to the overlap between the final state of the QAOA and the expected state (the correct answer). It can also be intepreted as the possibility of finding the correct answer in the final measurement. In the most ideal scenario, the overlaps obtained from multiple execution should be a constant $1$. However, due to the nature of QAOA, even using the noiseless simulator, the overlaps are never a constant, but a distribution. Therefore, we are not going to compare the overlap distribution of a quantum processor with the constant $1$. Instead, a distribution should be compared with the best distribution, which is from a noiseless simulator.
+Before we dive into the math, I would like to explain **overlap distribution**, which is frequently used below. This overlap refers to the overlap between the final state of the QAOA and the expected state (the correct answer). It can also be interpreted as the possibility of finding the correct answer in the final measurement. In the most ideal scenario, the overlaps obtained from multiple executions should be a constant $1$. However, due to the nature of QAOA, even using the noiseless simulator, the overlaps are never a constant, but a distribution. Therefore, we are not going to compare the overlap distribution of a quantum processor with the constant $1$. Instead, a distribution should be compared with the best distribution, which is from a noiseless simulator.
 
 The first step is to build a scoring function $F(x)$. One reference case is solved on a noiseless simulator for $10^4$ times and all overlaps distribution $f(x)$ are interpreted into a histogram with 200 boxes ranging from 0 to 1. The scoring function is the cumulative summation of this 200-element list.
 
@@ -93,24 +93,30 @@ Then we begin to benchmark. The same reference case is solved on a quantum proce
 
 In very short, $f(x)$ is the overlap distribution on a noiseless simulator and $F(x)$ is the cumulative summation of it. $g(x)$ is the overlap distribution on a quantum backend. 
 
-Since the reference case is solved for many time, the overlap distribution can be regarded as a continuous function, and the score is represented as an:
+Since the reference case is solved many time, the overlap distribution can be regarded as a continuous function, and the score is represented as an:
+
 $$
 s=2\int_0^1F(x)g(x)dx
 $$
 
-This score automatically normalises itself. To proof that, simply substute the distribution $f(x)$:
+This score automatically normalizes itself. To prove that, simply substitute the distribution $f(x)$:
+
 $$
 2\int_0^1F(x)f(x)dx = 2\left[F^2(x)\right]^1_0 - 2\int_0^1F(x)f(x)dx \\
 \to 2\int_0^1F(x)f(x)dx=1
 $$
-This property also helps understand the defination of score. If we further consider the noisy quantum processor as lowering each single overlap, the difference $\delta(x)$ between two distribution is then expressed as $g(x) = f(x) + \delta(x)$. $\delta(x)$ is supposed to have the shape as the letter "s" with positive value on the left and negative value on the right. In addition, the integration of this function should be 0.
+
+This property also helps us understand the definition of score. If we further consider the noisy quantum processor as lowering each single overlap, the difference $\delta(x)$ between two distributions is then expressed as $g(x) = f(x) + \delta(x)$. $\delta(x)$ is supposed to have the shape of the letter "s" with a positive value on the left and a negative value on the right. In addition, the integration of this function should be 0.
 
 $$
 \int_0^1\delta(x)=0
 $$
+
 where 
+
 $$
 s=2\int^1_0F(x)f(x)dx+2\int^1_0F(x)\delta(x)dx=1+2\int^1_0F(x)\delta(x)dx
 $$
+
 which indicates that this score is based on the "influence" of the noise.
 
