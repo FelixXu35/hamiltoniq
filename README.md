@@ -89,7 +89,7 @@ Before we dive into the math, I would like to explain **overlap distribution**, 
 
 The first step is to build a scoring function $F(x)$. One reference case is solved on a noiseless simulator for $10^4$ times and all overlaps distribution $f(x)$ are interpreted into a histogram with 200 boxes ranging from 0 to 1. The scoring function is the cumulative summation of this 200-element list.
 
-Then we begin to benchmark. The same reference case is solved on a quantum processor for $10^3$ times and each overlap is substituted into the scoring function $F(x)$ for a score. The final score $$s$$ is the average.
+Then we begin to benchmark. The same reference case is solved on a quantum processor for $10^3$ times and each overlap is substituted into the scoring function $F(x)$ for a score. The final score $s$ is the average.
 
 In very short, $f(x)$ is the overlap distribution on a noiseless simulator and $F(x)$ is the cumulative summation of it. $g(x)$ is the overlap distribution on a quantum backend. 
 
