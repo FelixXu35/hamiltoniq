@@ -85,7 +85,7 @@ A: Easy to use - use only one number to tell you the overall performance of a ba
 
 Therefore, for each backend with a certain number of qubits, our toolkit gives a score, which indicates <u>how much all kinds of noise influence the accuracy</u>. 
 
-Before we dive into the math, I would like to explain **overlap distribution**, which is frequently used below. This overlap refers to the overlap between the final state of the QAOA and the expected state (the correct answer). It can also be interpreted as the possibility of finding the correct answer in the final measurement. In the most ideal scenario, the overlaps obtained from multiple executions should be a constant $1$. However, due to the nature of QAOA, even using the noiseless simulator, the overlaps are never a constant, but a distribution. Therefore, we are not going to compare the overlap distribution of a quantum processor with the constant $1$. Instead, a distribution should be compared with the best distribution, which is from a noiseless simulator.
+Before we dive into the math, I would like to explain **overlap distribution**, which is frequently used below. This overlap refers to the overlap between the final state of the QAOA and the expected state (the correct answer). It can also be interpreted as the possibility of finding the correct answer in the final measurement. In the most ideal scenario, the overlaps obtained from multiple executions should be a constant $1$. However, since quantum computers are inherently probabilistic, even using the noiseless simulator, the overlaps are never a constant, but a distribution. Therefore, we are not going to compare the overlap distribution of a quantum processor with the constant $1$. Instead, a distribution should be compared with the best distribution, which is from a noiseless simulator.
 
 The first step is to build a scoring function $F(x)$. One reference case is solved on a noiseless simulator for $10^4$ times and all overlaps distribution $f(x)$ are interpreted into a histogram with 200 boxes ranging from 0 to 1. The scoring function is the cumulative summation of this 200-element list.
 
@@ -120,3 +120,8 @@ $$
 
 which indicates that this score is based on the "influence" of the noise.
 
+Imagine that in the future, there is a quantum processor not only has no noise, but also breaks the limit of physics and gives more accurate results on the same algorithm. Our toolkit can inherently cope with this situation and provide a higher score boundary of $2$, which indicates that every time QAOA has $100%$ probability to find the correct answer on this quantum processor.
+
+## Future plan
+
+* Benchmarks with ZNE

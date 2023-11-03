@@ -1,3 +1,7 @@
+"""
+Supporting functions
+"""
+
 from typing import List, Any, Callable, Dict
 import random
 

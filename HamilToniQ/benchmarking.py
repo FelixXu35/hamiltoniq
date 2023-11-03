@@ -2,7 +2,7 @@
 This Class is defined to give an overall score of the QAOA performance on a quantum hardware
 """
 
-from typing import Callable, List, Any
+from typing import Callable, List, Any, Sequence
 
 import random
 import numpy as np
@@ -14,12 +14,16 @@ from itertools import product
 from scipy.optimize import curve_fit
 from scipy import interpolate
 from pathlib import Path
-from scipy.optimize import minimize
+from scipy.optimize import minimize, OptimizeResult
 from qiskit import QuantumCircuit, Aer
-from qiskit.primitives import Sampler, Estimator, BackendSampler
+from qiskit.primitives import BackendSampler
 from qiskit.providers import fake_provider
-from qiskit.algorithms.minimum_eigensolvers import QAOA, MinimumEigensolverResult
-from qiskit.algorithms.optimizers import COBYLA
+from qiskit.circuit.library import QAOAAnsatz
+from qiskit_algorithms.minimum_eigensolvers import QAOA, MinimumEigensolverResult
+from qiskit_algorithms.optimizers import COBYLA
+from qiskit_algorithms import MinimumEigensolverResult
+from qiskit_ibm_runtime import Options, Session, Estimator
+from qiskit.quantum_info import Statevector
 from functools import partial
 
 from utility import Q_to_paulis, all_quantum_states
@@ -35,7 +39,6 @@ class Toniq:
     def __init__(self) -> None:
         self.backend_list = []
         self.maxiter = 10000
-        pass
 
     def get_Q_matirx(self, dim: int, lower: float = -10.0, upper: float = 10.0):
         """
@@ -63,6 +66,21 @@ class Toniq:
 
         return mat
 
+    def QAOA_cost(self, params, ansatz, op, estimator):
+        """Return estimate of energy from estimator
+
+        Parameters:
+            params (ndarray): Array of ansatz parameters
+            ansatz (QuantumCircuit): Parameterized ansatz circuit
+            hamiltonian (SparsePauliOp): Operator representation of Hamiltonian
+            estimator (Estimator): Estimator primitive instance
+
+        Returns:
+            float: Energy estimate
+        """
+        cost = estimator.run(ansatz, op, parameter_values=params).result().values[0]
+        return cost
+
     def get_ground_state(self, Q) -> dict:
         """
         Find the ground state information of a Q matrix
@@ -84,19 +102,19 @@ class Toniq:
         }
         return ground
 
-    def get_results(
+    def get_results_simulator(
         self,
-        backend,
+        fake_backend,
         Q: Matrix,
         n_layers: int,
-        options = None,
-        n_reps: int = 1,
+        options=None,
+        n_reps: int = 1000,
         n_cores: int | None = None,
-    ):
+    ) -> Sequence[MinimumEigensolverResult]:
         """
-        Run QAOA on a given backend.
+        Run QAOA on a given fake backend.
         args:
-            backend: Qiskit backend or simulator
+            fake_backend: Qiskit fake backend, which is a noisy simulator
             Q: Q matrix
             n_layers: the number of layers
             options:
@@ -106,7 +124,7 @@ class Toniq:
         """
         if n_cores is None:
             n_cores = cpu_count()
-        sampler = BackendSampler(backend=backend, options=options)
+        sampler = BackendSampler(backend=fake_backend, options=options)
         optimizer = COBYLA(maxiter=self.maxiter)
         self.param_list = []
         self.energy_list = []
@@ -116,18 +134,39 @@ class Toniq:
             reps=n_layers,
         )
         op, _ = Q_to_paulis(Q)
-        # if isinstance(backend, fake_provider):
         with Pool(8) as p:
             results = p.map(
                 qaoa.compute_minimum_eigenvalue, [op for _ in range(n_reps)]
             )
-        # else:
-        # results = [qaoa.compute_minimum_eigenvalue(op) for _ in range(n_reps)]
+        return results
+
+    def get_results_processor(
+        self,
+        backend,
+        Q: Matrix,
+        n_layers: int,
+        options=None,
+        n_reps: int = 1000,
+        resiliance=0,
+    ) -> Sequence[OptimizeResult]:
+        op, _ = Q_to_paulis(Q)
+        ansatz = QAOAAnsatz(op, reps=n_layers)
+        session = Session(backend=backend)
+        options = Options()
+        options.resilience_level = resiliance
+        estimator = Estimator(session=session, options=options)
+        x0 = (
+            np.pi * np.random.rand(ansatz.num_parameters) - np.pi / 2
+        )  # the same bounds as `SamplingVQE` class
+        results = [
+            minimize(self.QAOA_cost, x0, args=(ansatz, op, estimator), method="COBYLA")
+            for _ in range(n_reps)
+        ]
         return results
 
     def get_reference(
         self, Q: Matrix, n_layers: int, n_reps: int = 10000, n_points: int = 1000
-    ) -> List[float]:
+    ) -> Sequence[float]:
         """
         Calculate the scoring function.
         The scoring function is represented by uniform sampling.
@@ -174,34 +213,71 @@ class Toniq:
             score += f(i) * 2 / n_points
         return score
 
-    def get_accuracy(
-        self, data: List[MinimumEigensolverResult], dim: int, n_layers: int
-    ) -> List[float]:
+    def get_accuracy_simulator(
+        self, data: Sequence[MinimumEigensolverResult], dim: int
+    ) -> Sequence[float]:
         """
         Calculate the accuracy (overlap between the result and the ground state) for all QAOA results.
         """
         ground_state_info = globals()[f"ground_{dim}"]
         dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
-        for i in data:
+        for res in data:
             try:
-                accuracy_list.append(i.eigenstate[dec_ground_state])
+                accuracy_list.append(res.eigenstate[dec_ground_state])
             except:
                 accuracy_list.append(0)
         return accuracy_list
 
-    def run(
-        self, backend, dim: int, n_layers: int, n_cores: int | None = None
+    def get_accuracy_processor(
+        self, data: Sequence[OptimizeResult], dim: int, n_layers: int, Q
+    ) -> Sequence[float]:
+        op, _ = Q_to_paulis(Q)
+        ansatz = QAOAAnsatz(op, reps=n_layers)
+        ground_state_info = globals()[f"ground_{dim}"]
+        dec_ground_state = ground_state_info["dec_state"]
+        accuracy_list = []
+        for res in data:
+            qc = ansatz.bind_parameters(res.x)
+            sv = Statevector(qc)
+            accuracy_list.append(abs(sv[dec_ground_state]) ** 2)
+        return accuracy_list
+
+    def simulator_run(
+        self,
+        fake_backend,
+        dim: int,
+        n_layers: int,
+        n_cores: int | None = None,
+        n_reps: int = 1000,
     ) -> float:
         """
-        Score backend with a specific width/dimension and a number of layers.
+        Score a backend with a specific width/dimension and a number of layers.
         args:
             backend: the qiskit backend that is going to be scored.
         """
-        results_list = self.get_results(
-            backend, globals()[f"dim_{dim}"], n_layers, n_reps=1000, n_cores=n_cores
+        results_list = self.get_results_simulator(
+            fake_backend,
+            globals()[f"dim_{dim}"],
+            n_layers,
+            n_reps=n_reps,
+            n_cores=n_cores,
         )
-        accuracy_list = self.get_accuracy(results_list, dim, n_layers)
+        accuracy_list = self.get_accuracy_simulator(results_list, dim)
+        return self.score(accuracy_list, dim=dim, n_layers=n_layers)
+
+    def processor_run(
+        self, backend, dim: int, n_layers: int, n_reps: int = 1000
+    ) -> float:
+        results_list = self.get_results_processor(
+            backend,
+            globals()[f"dim_{dim}"],
+            n_layers,
+            n_reps=n_reps,
+        )
+        accuracy_list = self.get_accuracy_processor(
+            results_list, dim, n_layers, globals()[f"dim_{dim}"]
+        )
         return self.score(accuracy_list, dim=dim, n_layers=n_layers)
 
     def plot_heatmap(self, data: pd.DataFrame, sort_dim: int = 1):
@@ -230,3 +306,6 @@ class Toniq:
         if backends in self.backend_list:
             pass
         pass
+
+    def ZNE_settings(self) -> None:
+        print("ZNE settings")

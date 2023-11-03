@@ -12,7 +12,7 @@ setuptools.setup(
     url="https://github.com/FelixXu35/HamilToniQ",
     packages=setuptools.find_packages(),
     include_package_data=True,
-    install_requires=["numpy", "scipy"],
+    install_requires=["numpy", "scipy", "qiskit", "qiskit-algorithms", "qiskit-ibm-runtime"],
     extras_require={
         "qiskit": ["qiskit"],
     },
