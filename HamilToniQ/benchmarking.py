@@ -121,7 +121,6 @@ class Toniq:
     def get_results_simulator(
         self,
         fake_backend,
-        Q: Matrix,
         n_layers: int,
         options=None,
         n_reps: int = 1000,
@@ -139,9 +138,8 @@ class Toniq:
         return:
             a list of MinimumEigensolverResult
         """
-        # prepare for multiprocessing
         if n_cores is None:
-            n_cores = cpu_count()
+            n_cores = cpu_count()  # detect the total number of cores
         sampler = BackendSampler(backend=fake_backend, options=options)
         optimizer = COBYLA(maxiter=self.maxiter)
         qaoa = QAOA(
@@ -149,24 +147,21 @@ class Toniq:
             optimizer=optimizer,
             reps=n_layers,
         )
-        op, _ = Q_to_paulis(Q)
         with Pool(8) as p:
             results = p.map(
-                qaoa.compute_minimum_eigenvalue, [op for _ in range(n_reps)]
+                qaoa.compute_minimum_eigenvalue, [self.op for _ in range(n_reps)]
             )
         return results
 
     def get_results_processor(
         self,
         backend,
-        Q: Matrix,
         n_layers: int,
         options=None,
         n_reps: int = 1000,
         resiliance=0,
     ) -> Sequence[OptimizeResult]:
-        op, _ = Q_to_paulis(Q)
-        ansatz = QAOAAnsatz(op, reps=n_layers)
+        ansatz = QAOAAnsatz(self.op, reps=n_layers)
         session = Session(backend=backend)
         options = Options()
         options.resilience_level = resiliance
@@ -175,7 +170,7 @@ class Toniq:
             np.pi * np.random.rand(ansatz.num_parameters) - np.pi / 2
         )  # the same bounds as `SamplingVQE` class
         results = [
-            minimize(self.QAOA_cost, x0, args=(ansatz, op, estimator), method="COBYLA")
+            minimize(self.QAOA_cost, x0, args=(ansatz, self.op, estimator), method="COBYLA")
             for _ in range(n_reps)
         ]
         return results
@@ -188,8 +183,8 @@ class Toniq:
         n_cores=1,
     ) -> Sequence[float]:
         """
-        Calculate the scoring function.
-        The scoring function is represented by uniform sampling.
+        Calculate the score function.
+        The score function is represented by uniform sampling.
 
         args:
             Q:
@@ -197,7 +192,7 @@ class Toniq:
             n_reps: number of repetation by which the QAOA run on a simulator
             n_points: number of points in sampling percedure
         return:
-            scoring_curve_sampling: A list of uniform sampling of the scoring curve. It has 201 elements.
+            score_curve_sampling: A list of uniform sampling of the score curve. It has 201 elements.
             The corresponding x-axis is build using `np.linspace(0, 1, 201)`.
         """
         ground_state_info = self.get_ground_state(Q)
@@ -219,13 +214,13 @@ class Toniq:
         hist_y, _ = np.histogram(accuracy_list, bins=hist_x)
         hist_y = np.divide(hist_y, np.shape(accuracy_list)[0])
 
-        # build the scoring function
+        # build the score function
         cumulative_score = np.cumsum(hist_y)
-        scoring_curve_sampling = np.append(np.zeros(1), cumulative_score)
-        return scoring_curve_sampling
+        score_curve_sampling = np.append(np.zeros(1), cumulative_score)
+        return score_curve_sampling
 
     def score(self, accuracy_data: list, n_qubits, n_layers) -> float:
-        df = pd.read_csv("HamilToniQ/scoring_curves.csv")
+        df = pd.read_csv("HamilToniQ/score_curves.csv")
         score_y = df[f"qubits_{n_qubits}_layer_{n_layers}"]
         score_x = df["score_x"]
         f = interpolate.interp1d(score_x, score_y, kind="linear")
@@ -252,10 +247,9 @@ class Toniq:
         return accuracy_list
 
     def get_accuracy_processor(
-        self, data: Sequence[OptimizeResult], n_qubits: int, n_layers: int, Q
+        self, data: Sequence[OptimizeResult], n_qubits: int, n_layers: int,
     ) -> Sequence[float]:
-        op, _ = Q_to_paulis(Q)
-        ansatz = QAOAAnsatz(op, reps=n_layers)
+        ansatz = QAOAAnsatz(self.op, reps=n_layers)
         ground_state_info = globals()[f"ground_{n_qubits}"]
         dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
@@ -272,9 +266,10 @@ class Toniq:
         n_layers: int,
         n_cores: int | None = None,
         n_reps: int = 1000,
+        Q: np.ndarray | None = None,
     ) -> float:
         """Score a backend with a specific number of qubits and a number of layers.
-        This function is dedicated to simulator, since multiprocessing is used to speed up.
+        This function is dedicated to simulators, since multiprocessing is used to speed up.
 
         args:
             fake_backend: the qiskit backend that is going to be scored.
@@ -282,13 +277,17 @@ class Toniq:
             n_layers: the number of layers in QAOA ansatz.
             n_cores: the expected number of cores on PC. Auto detection will be used if this number is not specify.
             n_reps: for how many times the QAOA algorithm is run. The default number is 1000.
+            Q: the used-defined Q-matrix used in benchmarking. The default ones will be used if this is not specified.
 
         return:
             score: the score of this simuator
         """
+        self.Q = globals()[f"qubits_{n_qubits}"]
+        if Q is not None:
+            self.Q = Q
+        self.op, _ = Q_to_paulis(self.Q)
         results_list = self.get_results_simulator(
             fake_backend,
-            globals()[f"qubits_{n_qubits}"],
             n_layers,
             n_reps=n_reps,
             n_cores=n_cores,
@@ -297,8 +296,31 @@ class Toniq:
         return self.score(accuracy_list, n_qubits=n_qubits, n_layers=n_layers)
 
     def processor_run(
-        self, backend, n_qubits: int, n_layers: int, n_reps: int = 1000
+        self,
+        backend,
+        n_qubits: int,
+        n_layers: int,
+        n_reps: int = 1000,
+        Q: np.ndarray | None = None,
     ) -> float:
+        """Score a backend with a specific number of qubits and a number of layers.
+        This function is dedicated to real quantum computors.
+        Scoring simulators using this function is feasible, but it will take much longer time.
+
+        args:
+            fake_backend: the qiskit backend that is going to be scored.
+            n_qubits: the number of qubits.
+            n_layers: the number of layers in QAOA ansatz.
+            n_cores: the expected number of cores on PC. Auto detection will be used if this number is not specify.
+            Q: the used-defined Q-matrix used in benchmarking. The default ones will be used if this is not specified.
+
+        return:
+            score: the score of this simuator
+        """
+        self.Q = globals()[f"qubits_{n_qubits}"]
+        if Q is not None:
+            self.Q = Q
+        self.op, _ = Q_to_paulis(self.Q)
         results_list = self.get_results_processor(
             backend,
             globals()[f"qubits_{n_qubits}"],
