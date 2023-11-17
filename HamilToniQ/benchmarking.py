@@ -33,6 +33,7 @@ from .matrices import *
 Matrix = Any
 Counts = Any
 Hardware_Backend = Any
+Fake_Backend = Any
 
 
 class Toniq:
@@ -41,23 +42,26 @@ class Toniq:
         self.maxiter = 10000
 
     def get_Q_matirx(
-        self, dim: int, lower: float = -10.0, upper: float = 10.0
-    ) -> Matrix:
+        self, n_qubits: int, lower: float | int = -10.0, upper: float | int = 10.0
+    ) -> np.ndarray:
         """Generate a random symmetric matrix with a give dimension.
 
         args:
-            dim: the dimension of Q matrix
+            n_qubits: the dimension of Q matrix
             lower: the lower boundary of each random element
             upper: the upper boundary of each random element
-            print_hardness: print out the hardness of generated Q matrix
 
         return:
             mat: a symmetric matrix
         """
-        mat = np.array([random.uniform(lower, upper) for _ in range(dim**2)])
-        mat = mat.reshape(dim, dim)
+        mat = np.array(
+            [random.uniform(lower, upper) for _ in range(n_qubits**2)]
+        )  # Create a flat array of random numbers with size n_qubits^2
+        mat = mat.reshape(n_qubits, n_qubits)
         mat = np.triu(mat)
-        mat += mat.T - np.diag(mat.diagonal())
+        mat += mat.T - np.diag(
+            mat.diagonal()
+        )  # Make the matrix symmetric by adding its transpose and subtracting the diagonal
 
         # print the hardness
         normalized_covariance = [
@@ -75,22 +79,22 @@ class Toniq:
         ansatz: QuantumCircuit,
         op: SparsePauliOp,
         estimator: Estimator,
-    ):
-        """Return estimate of energy from estimator
+    ) -> float:
+        """Return the estimated energy from estimator
 
         Parameters:
-            params (ndarray): Array of ansatz parameters
-            ansatz (QuantumCircuit): Parameterized ansatz circuit
-            hamiltonian (SparsePauliOp): Operator representation of Hamiltonian
-            estimator (Estimator): Estimator primitive instance
+            params: values of ansatz parameters
+            ansatz: the quantum circuit from which a state is generated
+            hamiltonian: the Hamiltonian to which the energy corresponds
+            estimator: estimator primitive instance
 
         Returns:
-            float: Energy estimate
+            float: estimated energy
         """
         cost = estimator.run(ansatz, op, parameter_values=params).result().values[0]
         return cost
 
-    def get_ground_state(self, Q) -> dict:
+    def get_ground_state(self, Q: np.ndarray) -> dict[str, any]:
         """Find the ground state information of a Q matrix
 
         args:
@@ -103,12 +107,14 @@ class Toniq:
         n_qubits = np.shape(Q)[0]
         energy_list = []
         for state in all_quantum_states(n_qubits):
-            energy_list.append(np.dot(state, np.dot(Q, state)))
-        dec_min = np.argmin(energy_list)  # ground state in binary form
+            energy_list.append(
+                np.dot(state, np.dot(Q, state))
+            )  # calculate all possible energy
+        dec_min = np.argmin(energy_list)  # ground state in decimal
         ground = {
-            "bin_state": f"{bin(dec_min)[2:]:0>{n_qubits}}",
+            "bin_state": f"{bin(dec_min)[2:]:0>{n_qubits}}",  # ground state in binary
             "dec_state": dec_min,
-            "energy": energy_list[dec_min],
+            "energy": energy_list[dec_min],  # ground state energy
         }
         return ground
 
@@ -133,12 +139,11 @@ class Toniq:
         return:
             a list of MinimumEigensolverResult
         """
+        # prepare for multiprocessing
         if n_cores is None:
             n_cores = cpu_count()
         sampler = BackendSampler(backend=fake_backend, options=options)
         optimizer = COBYLA(maxiter=self.maxiter)
-        self.param_list = []
-        self.energy_list = []
         qaoa = QAOA(
             sampler=sampler,
             optimizer=optimizer,
@@ -219,9 +224,9 @@ class Toniq:
         scoring_curve_sampling = np.append(np.zeros(1), cumulative_score)
         return scoring_curve_sampling
 
-    def score(self, accuracy_data: list, dim, n_layers) -> float:
+    def score(self, accuracy_data: list, n_qubits, n_layers) -> float:
         df = pd.read_csv("HamilToniQ/scoring_curves.csv")
-        score_y = df[f"dim_{dim}_layer_{n_layers}"]
+        score_y = df[f"qubits_{n_qubits}_layer_{n_layers}"]
         score_x = df["score_x"]
         f = interpolate.interp1d(score_x, score_y, kind="linear")
         score = 0.0
@@ -231,12 +236,12 @@ class Toniq:
         return score
 
     def get_accuracy_simulator(
-        self, data: Sequence[MinimumEigensolverResult], dim: int
+        self, data: Sequence[MinimumEigensolverResult], n_qubits: int
     ) -> Sequence[float]:
         """
         Calculate the accuracy (overlap between the result and the ground state) for all QAOA results.
         """
-        ground_state_info = globals()[f"ground_{dim}"]
+        ground_state_info = globals()[f"ground_{n_qubits}"]
         dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
         for res in data:
@@ -247,11 +252,11 @@ class Toniq:
         return accuracy_list
 
     def get_accuracy_processor(
-        self, data: Sequence[OptimizeResult], dim: int, n_layers: int, Q
+        self, data: Sequence[OptimizeResult], n_qubits: int, n_layers: int, Q
     ) -> Sequence[float]:
         op, _ = Q_to_paulis(Q)
         ansatz = QAOAAnsatz(op, reps=n_layers)
-        ground_state_info = globals()[f"ground_{dim}"]
+        ground_state_info = globals()[f"ground_{n_qubits}"]
         dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
         for res in data:
@@ -263,47 +268,59 @@ class Toniq:
     def simulator_run(
         self,
         fake_backend,
-        dim: int,
+        n_qubits: int,
         n_layers: int,
         n_cores: int | None = None,
         n_reps: int = 1000,
     ) -> float:
-        """
-        Score a backend with a specific width/dimension and a number of layers.
+        """Score a backend with a specific number of qubits and a number of layers.
+        This function is dedicated to simulator, since multiprocessing is used to speed up.
+
         args:
-            backend: the qiskit backend that is going to be scored.
+            fake_backend: the qiskit backend that is going to be scored.
+            n_qubits: the number of qubits.
+            n_layers: the number of layers in QAOA ansatz.
+            n_cores: the expected number of cores on PC. Auto detection will be used if this number is not specify.
+            n_reps: for how many times the QAOA algorithm is run. The default number is 1000.
+
+        return:
+            score: the score of this simuator
         """
         results_list = self.get_results_simulator(
             fake_backend,
-            globals()[f"dim_{dim}"],
+            globals()[f"qubits_{n_qubits}"],
             n_layers,
             n_reps=n_reps,
             n_cores=n_cores,
         )
-        accuracy_list = self.get_accuracy_simulator(results_list, dim)
-        return self.score(accuracy_list, dim=dim, n_layers=n_layers)
+        accuracy_list = self.get_accuracy_simulator(results_list, n_qubits)
+        return self.score(accuracy_list, n_qubits=n_qubits, n_layers=n_layers)
 
     def processor_run(
-        self, backend, dim: int, n_layers: int, n_reps: int = 1000
+        self, backend, n_qubits: int, n_layers: int, n_reps: int = 1000
     ) -> float:
         results_list = self.get_results_processor(
             backend,
-            globals()[f"dim_{dim}"],
+            globals()[f"qubits_{n_qubits}"],
             n_layers,
             n_reps=n_reps,
         )
         accuracy_list = self.get_accuracy_processor(
-            results_list, dim, n_layers, globals()[f"dim_{dim}"]
+            results_list, n_qubits, n_layers, globals()[f"qubits_{n_qubits}"]
         )
-        return self.score(accuracy_list, dim=dim, n_layers=n_layers)
+        return self.score(accuracy_list, n_qubits=n_qubits, n_layers=n_layers)
 
-    def plot_heatmap(self, data: pd.DataFrame, sort_dim: int = 1):
+    def plot_heatmap(self, data: pd.DataFrame, sort_qubit: int = 1) -> None:
+        """Use a heatmap to compare across different backend with the same number of qubits.
+        This function has no return, but plots a sorted chart.
+
+        args:
+            data: scores
+            sort_qubit: the qubits with which the chart is sorted.
         """
-        Use a heatmap to compare across different backend with the same dimension.
-        """
-        if sort_dim not in range(1, 10):
-            raise ValueError("Invalid dimension")
-        first_score = data.index[sort_dim]
+        if sort_qubit not in range(1, 10):
+            raise ValueError("Invalid n_qubitsension")
+        first_score = data.index[sort_qubit]
         data = data.transpose()
         data_sorted = data.sort_values(by=first_score, ascending=False)
         sns.heatmap(
@@ -315,7 +332,7 @@ class Toniq:
             vmin=0,
         )
 
-    def show_ladder_diagram(self, dim: int, n_layers: int, backends=None):
+    def show_ladder_diagram(self, n_qubits: int, n_layers: int, backends=None):
         f"""
         Show the benchmarking results obtained by us.
         {self.backend_list}
