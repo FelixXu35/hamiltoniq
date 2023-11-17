@@ -45,7 +45,8 @@ def Q_to_paulis(Q):
 
     return SparsePauliOp(pauli_terms, coeffs=coeffs), offset
 
-def all_quantum_states(n_qubits, budget = None, vec = False):
+
+def all_quantum_states(n_qubits, budget=None, vec=False):
     states = []
     for i in range(2**n_qubits):
         a = f"{bin(i)[2:]:0>{n_qubits}}"

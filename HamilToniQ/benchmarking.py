@@ -15,23 +15,23 @@ from scipy.optimize import curve_fit
 from scipy import interpolate
 from pathlib import Path
 from scipy.optimize import minimize, OptimizeResult
-from qiskit import QuantumCircuit, Aer
+from qiskit import Aer
+from qiskit.circuit import QuantumCircuit
 from qiskit.primitives import BackendSampler
-from qiskit.providers import fake_provider
 from qiskit.circuit.library import QAOAAnsatz
 from qiskit_algorithms.minimum_eigensolvers import QAOA, MinimumEigensolverResult
 from qiskit_algorithms.optimizers import COBYLA
 from qiskit_algorithms import MinimumEigensolverResult
 from qiskit_ibm_runtime import Options, Session, Estimator
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, SparsePauliOp
+from qiskit_ibm_runtime import Estimator
 from functools import partial
 
-from utility import Q_to_paulis, all_quantum_states
-from matrices import *
+from .utility import Q_to_paulis, all_quantum_states
+from .matrices import *
 
 Matrix = Any
 Counts = Any
-Circuit = Any
 Hardware_Backend = Any
 
 
@@ -40,14 +40,17 @@ class Toniq:
         self.backend_list = []
         self.maxiter = 10000
 
-    def get_Q_matirx(self, dim: int, lower: float = -10.0, upper: float = 10.0):
-        """
-        Generate a random symmetric matrix with a give dimension.
+    def get_Q_matirx(
+        self, dim: int, lower: float = -10.0, upper: float = 10.0
+    ) -> Matrix:
+        """Generate a random symmetric matrix with a give dimension.
+
         args:
             dim: the dimension of Q matrix
             lower: the lower boundary of each random element
             upper: the upper boundary of each random element
             print_hardness: print out the hardness of generated Q matrix
+
         return:
             mat: a symmetric matrix
         """
@@ -66,7 +69,13 @@ class Toniq:
 
         return mat
 
-    def QAOA_cost(self, params, ansatz, op, estimator):
+    def QAOA_cost(
+        self,
+        params: Sequence[float],
+        ansatz: QuantumCircuit,
+        op: SparsePauliOp,
+        estimator: Estimator,
+    ):
         """Return estimate of energy from estimator
 
         Parameters:
@@ -82,10 +91,11 @@ class Toniq:
         return cost
 
     def get_ground_state(self, Q) -> dict:
-        """
-        Find the ground state information of a Q matrix
+        """Find the ground state information of a Q matrix
+
         args:
             Q: the Q matrix
+
         return:
             ground: a dict including the ground state in binary form (string), decimal form (int)
             and the corresponding energy (float).
@@ -111,14 +121,15 @@ class Toniq:
         n_reps: int = 1000,
         n_cores: int | None = None,
     ) -> Sequence[MinimumEigensolverResult]:
-        """
-        Run QAOA on a given fake backend.
+        """Run QAOA on a given fake backend.
+
         args:
             fake_backend: Qiskit fake backend, which is a noisy simulator
             Q: Q matrix
             n_layers: the number of layers
             options:
             n_reps: for how many times does QAOA run
+
         return:
             a list of MinimumEigensolverResult
         """
@@ -165,7 +176,11 @@ class Toniq:
         return results
 
     def get_reference(
-        self, Q: Matrix, n_layers: int, n_reps: int = 10000, n_points: int = 1000
+        self,
+        Q: Matrix,
+        n_layers: int,
+        n_points: int = 10000,
+        n_cores=1,
     ) -> Sequence[float]:
         """
         Calculate the scoring function.
@@ -185,7 +200,9 @@ class Toniq:
         backend = Aer.get_backend("aer_simulator")
 
         # get the distribution of accuracy
-        results = self.get_results(backend, Q, n_layers, n_reps=n_points)
+        results = self.get_results_simulator(
+            backend, Q, n_layers, n_reps=n_points, n_cores=n_cores
+        )
         accuracy_list = []
         for i in results:
             try:
@@ -195,7 +212,7 @@ class Toniq:
         n_boxes = 200
         hist_x = np.linspace(0, 1, n_boxes + 1)
         hist_y, _ = np.histogram(accuracy_list, bins=hist_x)
-        hist_y = np.divide(hist_y, accuracy_list.size)
+        hist_y = np.divide(hist_y, np.shape(accuracy_list)[0])
 
         # build the scoring function
         cumulative_score = np.cumsum(hist_y)
