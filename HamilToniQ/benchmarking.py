@@ -34,6 +34,7 @@ Matrix = Any
 Counts = Any
 Hardware_Backend = Any
 Fake_Backend = Any
+Quantum_Processor = Any
 
 
 class Toniq:
@@ -120,34 +121,31 @@ class Toniq:
 
     def get_results_simulator(
         self,
-        fake_backend,
+        fake_backend: Fake_Backend,
         n_layers: int,
-        options=None,
         n_reps: int = 1000,
         n_cores: int | None = None,
     ) -> Sequence[MinimumEigensolverResult]:
-        """Run QAOA on a given fake backend.
+        """Return certain number of QAOA results on a specified fake backend.
 
         args:
             fake_backend: Qiskit fake backend, which is a noisy simulator
-            Q: Q matrix
             n_layers: the number of layers
-            options:
-            n_reps: for how many times does QAOA run
+            n_reps: how many QAOA results will be returned
 
         return:
             a list of MinimumEigensolverResult
         """
         if n_cores is None:
             n_cores = cpu_count()  # detect the total number of cores
-        sampler = BackendSampler(backend=fake_backend, options=options)
+        sampler = BackendSampler(backend=fake_backend)
         optimizer = COBYLA(maxiter=self.maxiter)
         qaoa = QAOA(
             sampler=sampler,
             optimizer=optimizer,
             reps=n_layers,
         )
-        with Pool(8) as p:
+        with Pool(n_cores) as p:
             results = p.map(
                 qaoa.compute_minimum_eigenvalue, [self.op for _ in range(n_reps)]
             )
@@ -155,22 +153,30 @@ class Toniq:
 
     def get_results_processor(
         self,
-        backend,
+        backend: Quantum_Processor,
         n_layers: int,
-        options=None,
         n_reps: int = 1000,
-        resiliance=0,
     ) -> Sequence[OptimizeResult]:
+        """Return certain number of QAOA results on a specified quantum processor.
+
+        args:
+            backend: Qiskit fake backend, which is a noisy simulator
+            n_layers: the number of layers
+            n_reps: how many QAOA results will be returned
+
+        return:
+            a list of MinimumEigensolverResult
+        """
         ansatz = QAOAAnsatz(self.op, reps=n_layers)
         session = Session(backend=backend)
-        options = Options()
-        options.resilience_level = resiliance
-        estimator = Estimator(session=session, options=options)
+        estimator = Estimator(session=session)
         x0 = (
             np.pi * np.random.rand(ansatz.num_parameters) - np.pi / 2
         )  # the same bounds as `SamplingVQE` class
         results = [
-            minimize(self.QAOA_cost, x0, args=(ansatz, self.op, estimator), method="COBYLA")
+            minimize(
+                self.QAOA_cost, x0, args=(ansatz, self.op, estimator), method="COBYLA"
+            )
             for _ in range(n_reps)
         ]
         return results
@@ -182,8 +188,7 @@ class Toniq:
         n_points: int = 10000,
         n_cores=1,
     ) -> Sequence[float]:
-        """
-        Calculate the score function.
+        """Calculate the score function.
         The score function is represented by uniform sampling.
 
         args:
@@ -191,6 +196,7 @@ class Toniq:
             n_layers:
             n_reps: number of repetation by which the QAOA run on a simulator
             n_points: number of points in sampling percedure
+
         return:
             score_curve_sampling: A list of uniform sampling of the score curve. It has 201 elements.
             The corresponding x-axis is build using `np.linspace(0, 1, 201)`.
@@ -219,22 +225,40 @@ class Toniq:
         score_curve_sampling = np.append(np.zeros(1), cumulative_score)
         return score_curve_sampling
 
-    def score(self, accuracy_data: list, n_qubits, n_layers) -> float:
-        df = pd.read_csv("HamilToniQ/score_curves.csv")
+    def score(self, accuracy_data: list, n_qubits: int, n_layers: int) -> float:
+        """Calculate the score according to the QAOA accuracy data and the score curves.
+
+        args:
+            accuracy_data: the accuracy obtained from QAOA results
+            n_qubits: the number of qubits (used to find the score curves)
+            n_layers: the number of layers (used to find the score curves)
+
+        return:
+            score: the score of a backend
+        """
+        df = pd.read_csv("HamilToniQ/score_curves.csv")  # find the score curve
         score_y = df[f"qubits_{n_qubits}_layer_{n_layers}"]
         score_x = df["score_x"]
-        f = interpolate.interp1d(score_x, score_y, kind="linear")
+        f = interpolate.interp1d(
+            score_x, score_y, kind="linear"
+        )  # build the score function
         score = 0.0
-        n_points = np.shape(accuracy_data)[0]
+        n_data = np.shape(accuracy_data)[0]
         for i in accuracy_data:
-            score += f(i) * 2 / n_points
+            score += f(i) * 2 / n_data
         return score
 
     def get_accuracy_simulator(
         self, data: Sequence[MinimumEigensolverResult], n_qubits: int
     ) -> Sequence[float]:
-        """
-        Calculate the accuracy (overlap between the result and the ground state) for all QAOA results.
+        """Analyse the QAOA results from a simulator and extract their accuracy.
+
+        args:
+            data: a list of QAOA results obtained from a simualtor
+            n_qubits: the number of qubits
+
+        return:
+            accuracy_list: a list of accuracy, corresponding to input results
         """
         ground_state_info = globals()[f"ground_{n_qubits}"]
         dec_ground_state = ground_state_info["dec_state"]
@@ -247,8 +271,21 @@ class Toniq:
         return accuracy_list
 
     def get_accuracy_processor(
-        self, data: Sequence[OptimizeResult], n_qubits: int, n_layers: int,
+        self,
+        data: Sequence[OptimizeResult],
+        n_qubits: int,
+        n_layers: int,
     ) -> Sequence[float]:
+        """Analyse the QAOA results from a processor and extract their accuracy.
+
+        args:
+            data: a list of QAOA results obtained from a simualtor
+            n_qubits: the number of qubits
+            n_layers: the number of layers
+
+        return:
+            accuracy_list: a list of accuracy, corresponding to input results
+        """
         ansatz = QAOAAnsatz(self.op, reps=n_layers)
         ground_state_info = globals()[f"ground_{n_qubits}"]
         dec_ground_state = ground_state_info["dec_state"]
@@ -282,16 +319,21 @@ class Toniq:
         return:
             score: the score of this simuator
         """
+        # prepare Q-matrix and its operators
         self.Q = globals()[f"qubits_{n_qubits}"]
         if Q is not None:
             self.Q = Q
         self.op, _ = Q_to_paulis(self.Q)
+
+        # run QAOA and get results
         results_list = self.get_results_simulator(
             fake_backend,
             n_layers,
             n_reps=n_reps,
             n_cores=n_cores,
         )
+
+        # analyse the results and get a score
         accuracy_list = self.get_accuracy_simulator(results_list, n_qubits)
         return self.score(accuracy_list, n_qubits=n_qubits, n_layers=n_layers)
 
@@ -317,16 +359,20 @@ class Toniq:
         return:
             score: the score of this simuator
         """
+        # prepare Q-matrix and its operators
         self.Q = globals()[f"qubits_{n_qubits}"]
         if Q is not None:
             self.Q = Q
         self.op, _ = Q_to_paulis(self.Q)
+
+        # run QAOA and get the resutls
         results_list = self.get_results_processor(
             backend,
-            globals()[f"qubits_{n_qubits}"],
             n_layers,
             n_reps=n_reps,
         )
+
+        # analyse the results and get a score
         accuracy_list = self.get_accuracy_processor(
             results_list, n_qubits, n_layers, globals()[f"qubits_{n_qubits}"]
         )
@@ -341,10 +387,10 @@ class Toniq:
             sort_qubit: the qubits with which the chart is sorted.
         """
         if sort_qubit not in range(1, 10):
-            raise ValueError("Invalid n_qubitsension")
-        first_score = data.index[sort_qubit]
+            raise ValueError("Invalid n_qubitsension")  # shouldn't exceed the range
+        first_score = data.index[sort_qubit]  # select the colume
         data = data.transpose()
-        data_sorted = data.sort_values(by=first_score, ascending=False)
+        data_sorted = data.sort_values(by=first_score, ascending=False)  # sort the data
         sns.heatmap(
             data_sorted,
             annot=True,
