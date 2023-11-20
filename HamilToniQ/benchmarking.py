@@ -201,13 +201,17 @@ class Toniq:
             score_curve_sampling: A list of uniform sampling of the score curve. It has 201 elements.
             The corresponding x-axis is build using `np.linspace(0, 1, 201)`.
         """
+        # prepare Q-matrix and its operators
+        self.Q = Q
+        self.op, _ = Q_to_paulis(self.Q)
+
         ground_state_info = self.get_ground_state(Q)
         dec_ground_state = ground_state_info["dec_state"]
         backend = Aer.get_backend("aer_simulator")
 
         # get the distribution of accuracy
         results = self.get_results_simulator(
-            backend, Q, n_layers, n_reps=n_points, n_cores=n_cores
+            backend, n_layers, n_reps=n_points, n_cores=n_cores
         )
         accuracy_list = []
         for i in results:
@@ -236,7 +240,7 @@ class Toniq:
         return:
             score: the score of a backend
         """
-        df = pd.read_csv("HamilToniQ/score_curves.csv")  # find the score curve
+        df = pd.read_csv("../HamilToniQ/score_curves.csv")  # find the score curve
         score_y = df[f"qubits_{n_qubits}_layer_{n_layers}"]
         score_x = df["score_x"]
         f = interpolate.interp1d(
@@ -304,6 +308,7 @@ class Toniq:
         n_cores: int | None = None,
         n_reps: int = 1000,
         Q: np.ndarray | None = None,
+        plot_results: bool = False,
     ) -> float:
         """Score a backend with a specific number of qubits and a number of layers.
         This function is dedicated to simulators, since multiprocessing is used to speed up.
@@ -335,6 +340,10 @@ class Toniq:
 
         # analyse the results and get a score
         accuracy_list = self.get_accuracy_simulator(results_list, n_qubits)
+
+        # plot the accuracy list
+        if plot_results is True:
+            plt.plot(np.sort(accuracy_list))
         return self.score(accuracy_list, n_qubits=n_qubits, n_layers=n_layers)
 
     def processor_run(
@@ -344,6 +353,7 @@ class Toniq:
         n_layers: int,
         n_reps: int = 1000,
         Q: np.ndarray | None = None,
+        plot_results: bool = False,
     ) -> float:
         """Score a backend with a specific number of qubits and a number of layers.
         This function is dedicated to real quantum computors.
@@ -376,6 +386,10 @@ class Toniq:
         accuracy_list = self.get_accuracy_processor(
             results_list, n_qubits, n_layers, globals()[f"qubits_{n_qubits}"]
         )
+
+        # plot the accuracy list
+        if plot_results is True:
+            plt.plot(np.sort(accuracy_list))
         return self.score(accuracy_list, n_qubits=n_qubits, n_layers=n_layers)
 
     def plot_heatmap(self, data: pd.DataFrame, sort_qubit: int = 1) -> None:
