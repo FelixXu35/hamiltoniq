@@ -66,7 +66,7 @@ class Toniq:
 
         # print the hardness
         normalized_covariance = [
-            mat[i, j] / np.sqrt(mat[i, i] * mat[j, j])
+            mat[i, j] / np.sqrt(abs(mat[i, i] * mat[j, j]))
             for i in range(len(mat))
             for j in range(i + 1)
         ]
