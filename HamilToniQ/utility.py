@@ -2,7 +2,7 @@
 Supporting functions
 """
 
-from typing import List, Any, Callable, Dict
+from typing import List, Any, Callable, Dict, Tuple
 import random
 
 import numpy as np
@@ -56,3 +56,12 @@ def all_quantum_states(n_qubits):
                 vector[i] = 1
         states.append(vector)
     return states
+
+
+def simple_coupling_map() -> list[Tuple[int, int]]:
+    """Return a simple coupling map with 7 qubits.
+    This coupling map is used by `ibm_lagos` and `ibm_perth`.
+    """
+
+    coupling_map = [[0, 1], [1, 2], [1, 3], [3, 5], [4, 5], [5, 6]]
+    return coupling_map
