@@ -45,8 +45,7 @@ class CustomizeSim:
             readout_error = ReadoutError(
                 [[1 - p1given0, p1given0], [p0given1, 1 - p0given1]]
             )
-            self.noise_model.add_readout_error(readout_error, qubits=qubit)
-            self.noise_model.a
+            self.noise_model.add_readout_error(readout_error, qubits=[qubit])
     
     def add_pauli_x_error(self, rate_list: list[float]) -> None:
         pass
@@ -54,3 +53,6 @@ class CustomizeSim:
     def add_id_error(self, rate_list: list[float]) -> None:
         pass
 
+    
+    def build_simulator(self) -> AerSimulator:
+        return AerSimulator(noise_model=self.noise_model)
