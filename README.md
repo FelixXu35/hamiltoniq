@@ -63,11 +63,11 @@ The following results are sorted by the scores with `n_layers=1`.
 
 ##### the number of qubits is 3
 
-<p align=center><img src="./HamilToniQ/our_results/dim_3.png" alt="n_qubits=3" width="500" /></p>
+<p align=center><img src="./HamilToniQ/our_results/qubit_3.png" alt="n_qubits=3" width="500" /></p>
 
 ##### the number of qubits is 4
 
-<p align=center><img src="./HamilToniQ/our_results/dim_4.png" alt="n_qubits=4" width="500" /></p>
+<p align=center><img src="./HamilToniQ/our_results/qubit_4.png" alt="n_qubits=4" width="500" /></p>
 
 <a name="theory"></a>
 
