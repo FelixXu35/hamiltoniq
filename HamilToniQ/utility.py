@@ -6,13 +6,6 @@ from typing import List, Any, Callable, Dict, Tuple
 import random
 
 import numpy as np
-import matplotlib.pyplot as plt
-from functools import partial
-from qiskit import QuantumCircuit, transpile, Aer, execute
-from qiskit.providers.fake_provider import FakeBackendV2
-from qiskit_aer import AerSimulator
-from qiskit_ibm_runtime import IBMBackend
-from qiskit.result.counts import Counts
 from qiskit.quantum_info import Statevector, SparsePauliOp
 
 matrix = Any

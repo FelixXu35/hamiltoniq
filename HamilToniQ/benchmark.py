@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit
 from scipy import interpolate
 from pathlib import Path
 from scipy.optimize import minimize, OptimizeResult
-from qiskit import Aer
+from qiskit_aer import AerSimulator
 from qiskit.circuit import QuantumCircuit
 from qiskit.primitives import BackendSampler
 from qiskit.circuit.library import QAOAAnsatz
@@ -207,7 +207,7 @@ class Toniq:
 
         ground_state_info = self.get_ground_state(Q)
         dec_ground_state = ground_state_info["dec_state"]
-        backend = Aer.get_backend("aer_simulator")
+        backend = AerSimulator()
 
         # get the distribution of accuracy
         results = self.get_results_simulator(

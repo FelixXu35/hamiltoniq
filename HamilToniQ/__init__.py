@@ -2,4 +2,4 @@
 main code
 """
 
-from . import benchmarking, matrices, utility
+from . import benchmark, matrices, utility
