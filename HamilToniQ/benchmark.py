@@ -28,7 +28,7 @@ from qiskit_ibm_runtime import Estimator
 from functools import partial
 
 from .utility import Q_to_paulis, all_quantum_states
-from .matrices import *
+from .instances import *
 
 Matrix = Any
 Counts = Any

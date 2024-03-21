@@ -10,7 +10,7 @@ sys.path.insert(0, modulepath)
 import pytest
 import numpy as np
 
-from HamilToniQ.benchmarking import Toniq
+from else.benchmarking import Toniq
 
 tonic = Toniq()
 

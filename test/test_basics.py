@@ -9,8 +9,8 @@ sys.path.insert(0, modulepath)
 import pytest
 import numpy as np
 
-from HamilToniQ.benchmarking import Toniq
-from HamilToniQ.utility import all_quantum_states, Q_to_paulis
+from else.benchmarking import Toniq
+from else.utility import all_quantum_states, Q_to_paulis
 
 tonic = Toniq()
 
