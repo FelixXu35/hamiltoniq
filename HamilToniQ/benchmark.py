@@ -41,6 +41,10 @@ class Toniq:
     def __init__(self) -> None:
         self.backend_list = []
         self.maxiter = 10000
+        self.options = {
+            'optimization_level': 0,
+            'resilience_level': 0
+        }
 
     @staticmethod
     def get_Q_matirx(
@@ -95,6 +99,12 @@ class Toniq:
         """
         cost = estimator.run(ansatz, op, parameter_values=params).result().values[0]
         return cost
+    
+    def set_optimization_level(self, optimization_level:int):
+        self.options['optimization_level'] = optimization_level
+    
+    def set_resilience_level(self, resilience_level: int):
+        self.options['resilience_level'] = resilience_level
 
     def get_ground_state(self, Q: np.ndarray) -> dict[str, any]:
         """Find the ground state information of a Q matrix
@@ -139,7 +149,7 @@ class Toniq:
         """
         if n_cores is None:
             n_cores = cpu_count()  # detect the total number of cores
-        sampler = BackendSampler(backend=fake_backend)
+        sampler = BackendSampler(backend=fake_backend, options=self.options)
         optimizer = COBYLA(maxiter=self.maxiter)
         qaoa = QAOA(
             sampler=sampler,
