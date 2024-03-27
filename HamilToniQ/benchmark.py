@@ -42,8 +42,9 @@ class Toniq:
         self.backend_list = []
         self.maxiter = 10000
 
+    @staticmethod
     def get_Q_matirx(
-        self, n_qubits: int, lower: float | int = -10.0, upper: float | int = 10.0
+        n_qubits: int, lower: float | int = -10.0, upper: float | int = 10.0
     ) -> np.ndarray:
         """Generate a random symmetric matrix with a give dimension.
 
@@ -74,8 +75,8 @@ class Toniq:
 
         return mat
 
+    @staticmethod
     def QAOA_cost(
-        self,
         params: Sequence[float],
         ansatz: QuantumCircuit,
         op: SparsePauliOp,
