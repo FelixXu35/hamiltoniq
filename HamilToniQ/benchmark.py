@@ -16,6 +16,7 @@ from scipy import interpolate
 from pathlib import Path
 from scipy.optimize import minimize, OptimizeResult
 from qiskit_aer import AerSimulator
+from qiskit_aer.noise import NoiseModel
 from qiskit.circuit import QuantumCircuit
 from qiskit.primitives import BackendSampler
 from qiskit.circuit.library import QAOAAnsatz
