@@ -42,7 +42,7 @@ pip install -e .
 Simply copy and run the following python code:
 
 ```python
-from HamilToniQ.bechmarking import Toniq
+from hamiltoniq.bechmarking import Toniq
 
 toniq = Toniq()
 backend = <your_backend>
@@ -57,17 +57,25 @@ score = tonic.run(backend=backend, dim=dim, n_layers=n_layers, n_cores=n_cores)
 
 ## Our Result 
 
-Since the results depend on the instance/Q matrix used in the benchmarking process, we do not resommand comparing the score across different dimensions.
+Since the results depend on the instance/Q matrix used in the benchmarking process, we do not recommand comparing the score across different dimensions.
 
-The following results are sorted by the scores with `n_layers=1`.
+The following results were obtained on the built-in Q matrices and sorted by the scores with `n_layers=1`.
 
-##### the number of qubits is 3
+##### 3 qubits
 
 <p align=center><img src="./HamilToniQ/H_Scores/qubit_3.png" alt="n_qubits=3" width="700" /></p>
 
-##### the number of qubits is 4
+##### 4 qubits
 
 <p align=center><img src="./HamilToniQ/H_Scores/qubit_4.png" alt="n_qubits=4" width="700" /></p>
+
+##### 5 qubits
+
+<p align=center><img src="./HamilToniQ/H_Scores/qubit_5.png" alt="n_qubits=4" width="700" /></p>
+
+##### 6 qubits
+
+<p align=center><img src="./HamilToniQ/H_Scores/qubit_6.png" alt="n_qubits=4" width="700" /></p>
 
 <a name="theory"></a>
 
