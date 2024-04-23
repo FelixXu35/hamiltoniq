@@ -32,7 +32,7 @@ cd /path/to/your/directory
 git clone https://github.com/FelixXu35/hamiltoniq.git
 cd hamiltoniq
 pip install -e .
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 ```
 
 
