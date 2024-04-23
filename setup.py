@@ -6,10 +6,8 @@ setuptools.setup(
     version="0.1.0",
     author="Felix Xu, Louis Chen",
     author_email="xuxt35@outlook.com",
-    description="A bechmarking toolkit desgined for QAOA performance on real quantum hardwares.",
-    # long_description=long_description,
-    # long_description_content_type="text/markdown",
-    url="https://github.com/FelixXu35/HamilToniQ",
+    description="An application-oriented bechmarking toolkit desgined for QPUs.",
+    url="https://github.com/FelixXu35/hamiltoniq",
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=[
@@ -18,6 +16,10 @@ setuptools.setup(
         "qiskit",
         "qiskit-algorithms",
         "qiskit-ibm-runtime",
+        "matplotlib",
+        "pandas",
+        "seaborn",
+        "qiskit_aer"
     ],
     extras_require={
         "qiskit": ["qiskit"],
