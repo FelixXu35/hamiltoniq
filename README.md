@@ -42,7 +42,7 @@ pip install -r requirements.txt
 Simply copy and run the following python code:
 
 ```python
-from hamiltoniq.bechmarking import Toniq
+from hamiltoniq.bechmark import Toniq
 
 toniq = Toniq()
 backend = <your_backend>
