@@ -10,10 +10,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from multiprocessing import cpu_count, Pool
-from itertools import product
 from scipy.optimize import curve_fit
 from scipy import interpolate
-from pathlib import Path
 from scipy.optimize import minimize, OptimizeResult
 from qiskit_aer import AerSimulator
 from qiskit_aer.noise import NoiseModel
