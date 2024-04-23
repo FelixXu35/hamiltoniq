@@ -85,6 +85,8 @@ Note that comparison across different numbers of qubits is meaningless.
 
 ## Architecture
 
+For more technical details please visit our [Arxiv Paper](https://arxiv.org/abs/2404.13971).
+
 The HamilToniQ’s benchmarking workflow, shown in the figure below, commences with the characterization of QPUs, where each QPU is classified according to its type, topology, and multi-QPU system. This initial step ensures a tailored approach to the benchmarking process, considering the unique attributes of each QPU. Subsequently, the process engages in quantum circuit compilation, employing a specific strategy designed to optimize the execution of quantum circuits on the identified QPUs. Integral to the workflow is Quantum Error Mitigation (QEM), which strategically addresses computational noise and errors that could affect the fidelity of the quantum processes. The culmination of this rigorous workflow is the benchmarking result, which quantifies the performance of the QPU in terms of reliability—represented by the H-Score and Execution Time. These metrics provide a quantitative and objective measure of the QPU’s performance, reflecting the effectiveness of the benchmarking process implemented by HamilToniQ. Additionally, the H-score can help manage computational resources in a Quantum-HPC system.
 
 <p align=center><img src="./figures/benchmarking_scheme.png" alt="scheme" width="400" /></p>
