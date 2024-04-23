@@ -1,0 +1,11 @@
+numpy
+scipy
+matplotlib
+pandas
+scipy
+seaborn
+multiprocessing
+qiskit
+qiskit_aer
+qiskit_algorithms
+qiskit_ibm_runtime
