@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 from multiprocessing import cpu_count, Pool
 from scipy.optimize import curve_fit
 from scipy import interpolate
@@ -250,7 +251,9 @@ class Toniq:
         return:
             score: the score of a backend
         """
-        df = pd.read_csv("../HamilToniQ/score_curves.csv")  # find the score curve
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        csv_file_path = os.path.join(dir_path, 'score_curves.csv')
+        df = pd.read_csv(csv_file_path)   # import the score curve
         score_y = df[f"qubits_{n_qubits}_layer_{n_layers}"]
         score_x = df["score_x"]
         f = interpolate.interp1d(
