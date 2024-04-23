@@ -1,6 +1,6 @@
-# HamilToniQ
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-Developed by: Felix Xu, Louis Chen
+# HamilToniQ: An Open-Source Benchmark Toolkit for Quantum Computers
 
 Table of Contents:
 
@@ -77,7 +77,18 @@ Note that comparsion across different number of qubits is meaningless!
 
 <p align=center><img src="./hamiltoniq/H_Scores/qubit_6.png" alt="n_qubits=4" width="700" /></p>
 
-## Our Paper
+## How to cite
 
- If you are interested in this research, please consider citing our paper:
+If you used this package or framework for your research, please cite:
+
+```text
+@misc{xu2024hamiltoniq,
+      title={HamilToniQ: An Open-Source Benchmark Toolkit for Quantum Computers}, 
+      author={Xiaotian Xu and Kuan-Cheng Chen and Robert Wille},
+      year={2024},
+      eprint={2404.13971},
+      archivePrefix={arXiv},
+      primaryClass={quant-ph}
+}
+```
 
