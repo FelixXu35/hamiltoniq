@@ -1,4 +1,4 @@
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)[![DOI](https://zenodo.org/badge/DOI/10.48550/arXiv.2404.13971.svg)](https://doi.org/10.48550/arXiv.2404.13971)
 
 # HamilToniQ: An Open-Source Benchmark Toolkit for Quantum Computers
 
@@ -6,18 +6,23 @@ Table of Contents:
 
 1. [Introduction](#introduction)
 2. [Quick Start](#quickstart)
-3. [Our Result](#ourresult)
+3. [H-Scores](#hscores)
+4. [Architecture](#architecture)
+5. [How to cite](#cite)
 
 <a name="introduction"></a>
 
 ## Introduction 
 
-A benchmarking toolkit designed for QAOA performance on real quantum hardware.
+HamilToniQ is a application-oriented benchmarking toolkit for comprehensive evaluation of QPUs. 
 
-Using HamilToniQ, you can
+Highlighted features include:
 
-* benchmark a quantum processor.
-* compare the quantum processors and find the one most suitable for your case.
+- Easy to use: Users only need to call QPUs, run the main function, and get the scores.
+- Comprehensive scoring system: The toolkit generates single score, termed H-Score, capturing all relevant QPU performance factors such as error rates, circuit compilation, and quantum error mitigation.
+- Standardised and comparable results: H-Scores ensure consistent and comparable evaluation across different platforms.
+- Focusing on real-world application: The toolkit is based on optimisation algorithms to reflect actual application scenarios.
+- Multi-QPU support: Utility in multi-QPU resource management has been demonstrated.
 
 <a name="quickstart"></a>
 
@@ -25,7 +30,7 @@ Using HamilToniQ, you can
 
 ### Installation
 
-Install the *HamilToniQ* toolkit by run the following code in the Terminal.
+Install the *HamilToniQ* toolkit by running the following code in the Terminal.
 
 ```shell
 cd /path/to/your/directory
@@ -34,8 +39,6 @@ cd hamiltoniq
 pip install -e .
 pip install -r requirements.txt
 ```
-
-
 
 ### Bechmark a backend
 
@@ -46,20 +49,22 @@ from hamiltoniq.bechmark import Toniq
 
 toniq = Toniq()
 backend = <your_backend>
-dim = <your_prefered_dim>
-n_layers = <your_prefered_n_layers>
+n_qubits = <your_prefered_number_of_qubits>
+n_layers = <your_prefered_number_of_layers>
 n_cores = <number_of_cores_in_your_PC>
 
-score = tonic.run(backend=backend, dim=dim, n_layers=n_layers, n_cores=n_cores)
+score = tonic.simulator_run(backend=backend, n_qubits=n_qubits, n_layers=n_layers, n_cores=n_scores)
 ```
 
-<a name="ourresult"></a>
+An example is given in [this notebook](example_code.ipynb).
+
+<a name="hscores"></a>
 
 ## H-Scores
 
-The following results were obtained on the built-in Q matrices and sorted by the scores with `n_layers=1`.
+The following results were obtained on the built-in Q matrices.
 
-Note that comparsion across different number of qubits is meaningless!
+Note that comparsion across different number of qubits is meaningless.
 
 ##### 3 qubits
 
@@ -76,6 +81,20 @@ Note that comparsion across different number of qubits is meaningless!
 ##### 6 qubits
 
 <p align=center><img src="./hamiltoniq/H_Scores/qubit_6.png" alt="n_qubits=4" width="700" /></p>
+
+<a name="architecture"></a>
+
+## Architecture
+
+The HamilToniQ’s benchmarking workflow, shown in figure below, commences with the characterization of QPUs, where each QPU is classified according to its type, topology, and multiQPU system,. This initial step ensures a tailored approach to the benchmarking process, considering the unique attributes of each QPU. Subsequently, the process engages in quantum circuit compilation, employing a specific strategy designed to optimize the execution of quantum circuits on the identified QPUs. Integral to the workflow is Quantum Error Mitigation (QEM), which strategically addresses computational noise and errors that could affect the fidelity of the quantum processes. The culmination of this rigorous workflow is the benchmarking result, which quantifies the performance of the QPU in terms of reliability—represented by the H-Score and Execution Time. These metrics provide a quantitative and objective measure of the QPU’s performance, reflecting the effectiveness of the benchmarking process implemented by HamilToniQ. Additionally, the H-score can help manage computational resources in a Quantum-HPC system.
+
+<p align=center><img src="./figures/benchmarking_scheme.png" alt="scheme" width="400" /></p>
+
+HamilToniQ primarily comprises two components: the reference part, also known as ground truth, and the scoring part, as depicted in figure below. The reference part, which is optional, utilizes a noiseless simulator to find the scoring curve. Users will only need this part when they are benchmarking on their own Q matrices. In the scoring part, the Quantum Approximate Optimization Algorithm (QAOA) is executed for a certain number of times, and the scoring curve is used to determine the score of each iteration based on its accuracy. The final H-Score is computed as the average of all individual scores.
+
+<p align=center><img src="./figures/benchmarking_flow.png" alt="flow" width="400" /></p>
+
+<a name="cite"></a>
 
 ## How to cite
 

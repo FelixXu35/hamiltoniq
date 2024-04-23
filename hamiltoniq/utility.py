@@ -1,9 +1,8 @@
 """
-Supporting functions
+Supporting functions and some useful tools
 """
 
 from typing import List, Any, Callable, Dict, Tuple
-import random
 
 import numpy as np
 from qiskit.quantum_info import Statevector, SparsePauliOp

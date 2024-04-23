@@ -4,4 +4,4 @@
 
 ### 23 April
 
-The research paper on HamilToniQ, 
+The [research paper](https://arxiv.org/abs/2404.13971) on HamilToniQ, 

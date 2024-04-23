@@ -435,6 +435,3 @@ class Toniq:
         if backends in self.backend_list:
             pass
         pass
-
-    def ZNE_settings(self) -> None:
-        print("ZNE settings")

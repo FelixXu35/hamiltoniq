@@ -1,3 +1,7 @@
+"""
+Built-in Q matrices and their lowest cost and "correct answers".
+"""
+
 qubits_3 = [
     [5.1392, 8.3819, -5.5258],
     [8.3819, -6.8845, -7.2893],
