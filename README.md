@@ -55,7 +55,7 @@ n_cores = <number_of_cores_in_your_PC>
 score = tonic.simulator_run(backend=backend, n_qubits=n_qubits, n_layers=n_layers, n_cores=n_scores)
 ```
 
-An example is given in [this notebook](example_code.ipynb).
+An example is given in [this notebook](./docs/example_code.ipynb).
 
 <a name="hscores"></a>
 
