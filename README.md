@@ -102,13 +102,11 @@ HamilToniQ primarily comprises two components: the reference part, also known as
 If you used this package or framework for your research, please cite:
 
 ```text
-@misc{xu2024hamiltoniq,
-      title={HamilToniQ: An Open-Source Benchmark Toolkit for Quantum Computers}, 
-      author={Xiaotian Xu and Kuan-Cheng Chen and Robert Wille},
-      year={2024},
-      eprint={2404.13971},
-      archivePrefix={arXiv},
-      primaryClass={quant-ph}
+@article{xu2024hamiltoniq,
+  title={HamilToniQ: An Open-Source Benchmark Toolkit for Quantum Computers},
+  author={Xu, Xiaotian and Chen, Kuan-Cheng and Wille, Robert},
+  journal={arXiv preprint arXiv:2404.13971},
+  year={2024}
 }
 ```
 
