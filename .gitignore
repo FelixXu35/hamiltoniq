@@ -165,3 +165,4 @@ HamilToniQ/our_results/.DS_Store
 personal/
 general_test.ipynb
 .gitignore
+benchmark/
