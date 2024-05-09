@@ -25,6 +25,7 @@ from qiskit_algorithms import MinimumEigensolverResult
 from qiskit_ibm_runtime import Options, Session, Estimator
 from qiskit.quantum_info import Statevector, SparsePauliOp
 from qiskit_ibm_runtime import Estimator
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from functools import partial
 
 from .utility import Q_to_paulis, all_quantum_states
@@ -179,6 +180,7 @@ class Toniq:
             a list of MinimumEigensolverResult
         """
         ansatz = QAOAAnsatz(self.op, reps=n_layers)
+        pm = generate_preset_pass_manager(backend=backend, optimization_level=self.options['optimization_level'])
         session = Session(backend=backend)
         estimator = Estimator(session=session)
         x0 = (
