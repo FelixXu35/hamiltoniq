@@ -28,7 +28,12 @@ from qiskit_ibm_runtime import Estimator
 from functools import partial
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
-from .utility import Q_to_paulis, all_quantum_states
+from .utility import (
+    Q_to_paulis,
+    all_quantum_states,
+    get_transpiled_index_layout,
+    reorder_bits,
+)
 from .instances import *
 
 Matrix = Any
@@ -180,10 +185,10 @@ class Toniq:
 
         # Optimize ISA circuit for quantum execution
         target = backend.target
-        pm = generate_preset_pass_manager(
+        self.pm = generate_preset_pass_manager(
             target=target, optimization_level=self.options["optimization_level"]
         )
-        self.ansatz_isa = pm.run(self.ansatz)
+        self.ansatz_isa = self.pm.run(self.ansatz)
 
         # ISA observable
         self.op_isa = self.op.apply_layout(self.ansatz_isa.layout)
@@ -315,16 +320,19 @@ class Toniq:
         return:
             accuracy_list: a list of accuracy, corresponding to input results
         """
-        # ansatz = QAOAAnsatz(self.op, reps=n_layers)
-        # Use the ISA ansatz
-        ansatz = self.ansatz_isa
+        ansatz = QAOAAnsatz(self.op, reps=n_layers)
         ground_state_info = globals()[f"ground_{n_qubits}"]
-        dec_ground_state = ground_state_info["dec_state"]
+        bin_ground_state = ground_state_info["bin_state"]
         accuracy_list = []
         for res in data:
-            qc = ansatz.bind_parameters(res.x)
-            sv = Statevector(qc)
-            accuracy_list.append(abs(sv[dec_ground_state]) ** 2)
+            # Replace bind_parameters with assign_parameters
+            qc = ansatz.assign_parameters(res.x)
+            qc_isa = self.pm.run(qc)
+            sv = Statevector(qc_isa)
+            # Convert dec_state based on transpiled circuit layout
+            new_layout_order = get_transpiled_index_layout(qc_isa)
+            _, new_dec_ground_state = reorder_bits(bin_ground_state, new_layout_order)
+            accuracy_list.append(abs(sv[new_dec_ground_state]) ** 2)
         return accuracy_list
 
     def simulator_run(
