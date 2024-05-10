@@ -52,7 +52,7 @@ n_qubits = <your_prefered_number_of_qubits>
 n_layers = <your_prefered_number_of_layers>
 n_cores = <number_of_cores_in_your_PC>
 
-score = tonic.simulator_run(backend=backend, n_qubits=n_qubits, n_layers=n_layers, n_cores=n_scores)
+score = toniq.simulator_run(backend=backend, n_qubits=n_qubits, n_layers=n_layers, n_cores=n_cores)
 ```
 
 An example is given in [this notebook](./docs/example_code.ipynb).

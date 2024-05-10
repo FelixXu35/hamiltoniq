@@ -25,6 +25,7 @@ from qiskit_algorithms import MinimumEigensolverResult
 from qiskit_ibm_runtime import Options, Session, Estimator
 from qiskit.quantum_info import Statevector, SparsePauliOp
 from qiskit_ibm_runtime import Estimator
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from functools import partial
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
@@ -187,7 +188,6 @@ class Toniq:
 
         # ISA observable
         self.op_isa = self.op.apply_layout(self.ansatz_isa.layout)
-
         session = Session(backend=backend)
         estimator = Estimator(session=session)
         x0 = (
