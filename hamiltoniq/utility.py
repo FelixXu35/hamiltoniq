@@ -58,31 +58,3 @@ def simple_coupling_map() -> list[Tuple[int, int]]:
 
     coupling_map = [[0, 1], [1, 2], [1, 3], [3, 5], [4, 5], [5, 6]]
     return coupling_map
-
-
-def get_transpiled_index_layout(
-    tqc: QuantumCircuit, filter_ancillas: None = True
-) -> List[int]:
-    """Return the transpiled index layout of a circuit.
-    Args:
-        tqc: The circuit to get the transpiled index layout of.
-    Returns:
-        The transpiled index layout of the circuit.
-    """
-    return tqc.layout.final_index_layout(filter_ancillas=filter_ancillas)
-
-
-def reorder_bits(binary, new_order):
-    """
-    Reorder the bits of a binary string.
-    Args:
-        binary: The binary string to reorder.
-        new_order: The new order of the bits.
-    Returns:
-        The binary string with the bits reordered.
-    """
-    binary_str = str(binary)
-    # Create a new binary string based on the new order
-    new_binary = "".join(binary_str[i] for i in new_order)
-    decimal_value = int(new_binary, 2)
-    return new_binary, decimal_value

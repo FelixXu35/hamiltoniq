@@ -322,17 +322,12 @@ class Toniq:
         """
         ansatz = QAOAAnsatz(self.op, reps=n_layers)
         ground_state_info = globals()[f"ground_{n_qubits}"]
-        bin_ground_state = ground_state_info["bin_state"]
+        dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
         for res in data:
-            # Replace bind_parameters with assign_parameters
-            qc = ansatz.assign_parameters(res.x)
-            qc_isa = self.pm.run(qc)
-            sv = Statevector(qc_isa)
-            # Convert dec_state based on transpiled circuit layout
-            new_layout_order = get_transpiled_index_layout(qc_isa)
-            _, new_dec_ground_state = reorder_bits(bin_ground_state, new_layout_order)
-            accuracy_list.append(abs(sv[new_dec_ground_state]) ** 2)
+            qc = ansatz.bind_parameters(res.x)
+            sv = Statevector(qc)
+            accuracy_list.append(abs(sv[dec_ground_state]) ** 2)
         return accuracy_list
 
     def simulator_run(
