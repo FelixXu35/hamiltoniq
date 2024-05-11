@@ -27,7 +27,6 @@ from qiskit.quantum_info import Statevector, SparsePauliOp
 from qiskit_ibm_runtime import Estimator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from functools import partial
-from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 from .utility import (
     Q_to_paulis,

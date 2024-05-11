@@ -6,7 +6,6 @@ from typing import List, Any, Callable, Dict, Tuple
 
 import numpy as np
 from qiskit.quantum_info import Statevector, SparsePauliOp
-from qiskit import QuantumCircuit
 
 matrix = Any
 circuit = Any
