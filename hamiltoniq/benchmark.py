@@ -32,8 +32,6 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .utility import (
     Q_to_paulis,
     all_quantum_states,
-    get_transpiled_index_layout,
-    reorder_bits,
 )
 from .instances import *
 
@@ -325,7 +323,7 @@ class Toniq:
         dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
         for res in data:
-            qc = ansatz.bind_parameters(res.x)
+            qc = ansatz.assign_parameters(res.x)
             sv = Statevector(qc)
             accuracy_list.append(abs(sv[dec_ground_state]) ** 2)
         return accuracy_list
@@ -417,9 +415,7 @@ class Toniq:
         )
 
         # analyse the results and get a score
-        accuracy_list = self.get_accuracy_processor(
-            results_list, n_qubits, n_layers, globals()[f"qubits_{n_qubits}"]
-        )
+        accuracy_list = self.get_accuracy_processor(results_list, n_qubits, n_layers)
 
         # plot the accuracy list
         if plot_results is True:
