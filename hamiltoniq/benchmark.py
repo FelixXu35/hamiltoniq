@@ -28,7 +28,10 @@ from qiskit_ibm_runtime import Estimator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from functools import partial
 
-from .utility import Q_to_paulis, all_quantum_states
+from .utility import (
+    Q_to_paulis,
+    all_quantum_states,
+)
 from .instances import *
 
 Matrix = Any
@@ -42,10 +45,7 @@ class Toniq:
     def __init__(self) -> None:
         self.backend_list = []
         self.maxiter = 10000
-        self.options = {
-            'optimization_level': 0,
-            'resilience_level': 0
-        }
+        self.options = {"optimization_level": 0, "resilience_level": 0}
 
     @staticmethod
     def get_Q_matirx(
@@ -100,12 +100,12 @@ class Toniq:
         """
         cost = estimator.run(ansatz, op, parameter_values=params).result().values[0]
         return cost
-    
-    def set_optimization_level(self, optimization_level:int):
-        self.options['optimization_level'] = optimization_level
-    
+
+    def set_optimization_level(self, optimization_level: int):
+        self.options["optimization_level"] = optimization_level
+
     def set_resilience_level(self, resilience_level: int):
-        self.options['resilience_level'] = resilience_level
+        self.options["resilience_level"] = resilience_level
 
     def get_ground_state(self, Q: np.ndarray) -> dict[str, any]:
         """Find the ground state information of a Q matrix
@@ -172,23 +172,35 @@ class Toniq:
         """Return certain number of QAOA results on a specified quantum processor.
 
         args:
-            backend: Qiskit fake backend, which is a noisy simulator
+            backend: IBM Quantum Computer
             n_layers: the number of layers
             n_reps: how many QAOA results will be returned
 
         return:
             a list of MinimumEigensolverResult
         """
-        ansatz = QAOAAnsatz(self.op, reps=n_layers)
-        pm = generate_preset_pass_manager(backend=backend, optimization_level=self.options['optimization_level'])
+        self.ansatz = QAOAAnsatz(self.op, reps=n_layers)
+
+        # Optimize ISA circuit for quantum execution
+        target = backend.target
+        self.pm = generate_preset_pass_manager(
+            target=target, optimization_level=self.options["optimization_level"]
+        )
+        self.ansatz_isa = self.pm.run(self.ansatz)
+
+        # ISA observable
+        self.op_isa = self.op.apply_layout(self.ansatz_isa.layout)
         session = Session(backend=backend)
         estimator = Estimator(session=session)
         x0 = (
-            np.pi * np.random.rand(ansatz.num_parameters) - np.pi / 2
+            np.pi * np.random.rand(self.ansatz_isa.num_parameters) - np.pi / 2
         )  # the same bounds as `SamplingVQE` class
         results = [
             minimize(
-                self.QAOA_cost, x0, args=(ansatz, self.op, estimator), method="COBYLA"
+                self.QAOA_cost,
+                x0,
+                args=(self.ansatz_isa, self.op_isa, estimator),
+                method="COBYLA",
             )
             for _ in range(n_reps)
         ]
@@ -254,8 +266,8 @@ class Toniq:
             score: the score of a backend
         """
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        csv_file_path = os.path.join(dir_path, 'score_curves.csv')
-        df = pd.read_csv(csv_file_path)   # import the score curve
+        csv_file_path = os.path.join(dir_path, "score_curves.csv")
+        df = pd.read_csv(csv_file_path)  # import the score curve
         score_y = df[f"qubits_{n_qubits}_layer_{n_layers}"]
         score_x = df["score_x"]
         f = interpolate.interp1d(
@@ -310,7 +322,7 @@ class Toniq:
         dec_ground_state = ground_state_info["dec_state"]
         accuracy_list = []
         for res in data:
-            qc = ansatz.bind_parameters(res.x)
+            qc = ansatz.assign_parameters(res.x)
             sv = Statevector(qc)
             accuracy_list.append(abs(sv[dec_ground_state]) ** 2)
         return accuracy_list
@@ -359,7 +371,11 @@ class Toniq:
         # plot the accuracy list
         if plot_results is True:
             plt.plot(np.sort(accuracy_list))
-        return self.score(accuracy_list, n_qubits=n_qubits, n_layers=n_layers)
+        return (
+            results_list,
+            accuracy_list,
+            self.score(accuracy_list, n_qubits=n_qubits, n_layers=n_layers),
+        )
 
     def processor_run(
         self,
@@ -398,9 +414,7 @@ class Toniq:
         )
 
         # analyse the results and get a score
-        accuracy_list = self.get_accuracy_processor(
-            results_list, n_qubits, n_layers, globals()[f"qubits_{n_qubits}"]
-        )
+        accuracy_list = self.get_accuracy_processor(results_list, n_qubits, n_layers)
 
         # plot the accuracy list
         if plot_results is True:
